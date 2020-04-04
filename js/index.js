@@ -1,6 +1,9 @@
-(async() => {
-    let gizmo_db = await import("../pkg/index.js");
-    let session = gizmo_db.NewMemoryGraph();
+(async () => {
+    let gizmo = await import("./gizmo.js");
+
+    console.log(gizmo)
+
+    let session = gizmo.NewMemoryGraph();
 
     session.write([
         ["<alice>", "<follows>", "<bob>"],
@@ -30,12 +33,12 @@
     // get a single vertex
     /////////////////////////
 
-    let iter = g.v(["<alice>"]).values()
-    iter[Symbol.iterator] = function() { return this; }
+    console.log("get a single vertex")
 
-    var r = Array.from(iter);
+    let q = g.v("<alice>")
+
+    var r = Array.from(q.values());
     var e = ["<alice>"];
-
     console.assert(arrays_equal(r,e), "TEST FAILED: get a single vertex", r.sort(), e.sort());
 
 
@@ -43,12 +46,12 @@
     // use .out()
     /////////////////////////
 
-    iter = g.v(["<alice>"]).out_values(["<follows>"]).values()
-    iter[Symbol.iterator] = function() { return this; }
+    console.log("use .out()")
 
-    r = Array.from(iter);
+    q = g.v("<alice>").out("<alice>")
+
+    r = Array.from(q.values());
     e = ["<bob>"];
-
     console.assert(arrays_equal(r,e), "TEST FAILED: use .out()", r.sort(), e.sort());
 
 
@@ -56,18 +59,18 @@
     // use .out() (any)
     /////////////////////////
 
-    iter = g.v(["<bob>"]).out_values().values()
-    iter[Symbol.iterator] = function() { return this; }
+    console.log("use .out() (any)")
 
-    r = Array.from(iter);
+    q = g.v("<bob>").out()
+
+    r = Array.from(q.values());
     e = ["<fred>", "cool_person"];
-
     console.assert(arrays_equal(r,e), "TEST FAILED: use .out() (any)", r.sort(), e.sort());
 
-
-    
 })()
+    
 
-function arrays_equal(array1, array2) {
-    return array1.length === array2.length && array1.sort().every(function(value, index) { return value === array2.sort()[index]});
-}
+
+// function arrays_equal(array1, array2) {
+//     return array1.length === array2.length && array1.sort().every(function(value, index) { return value === array2.sort()[index]});
+// }

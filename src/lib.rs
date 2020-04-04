@@ -145,6 +145,7 @@ impl Graph {
         }
     }
 
+    #[wasm_bindgen(js_name = _v)]
     pub fn v(&self, js_values: &JsValue) -> Path {
         Path::new(
             self.session.clone(), 
@@ -158,6 +159,7 @@ impl Graph {
         )
     }
 
+    #[wasm_bindgen(js_name = _m)]
     pub fn m(&self) -> Path {
         Path::new(self.session.clone(), false, path::Path::start_morphism(Vec::new()))
     }
@@ -229,6 +231,7 @@ impl Path {
     ///////////////////////////
     // Is(nodes: Value[])
     ///////////////////////////
+    #[wasm_bindgen(js_name = _is)]
     pub fn is(&mut self, js_values: &JsValue) -> Result<Path, JsValue> {
         let nodes = js_array_to_values_vec(js_values);
         self.path.is(nodes);
@@ -239,6 +242,7 @@ impl Path {
     ///////////////////////////
     // In(values: String[], tags: String[])
     ///////////////////////////
+    #[wasm_bindgen(js_name = _in_values)]
     pub fn in_values(&mut self, js_values: &JsValue, js_tags: &JsValue) -> Result<Path, JsValue> {
         let nodes = js_array_to_values_vec(js_values);
         let tags = js_array_to_tags_vec(js_tags);
@@ -250,6 +254,7 @@ impl Path {
     ///////////////////////////
     // In(path: Path, tags: String[])
     ///////////////////////////
+    #[wasm_bindgen(js_name = _in_path)]
     pub fn in_path(&mut self, path: &Path, js_tags: &JsValue) -> Result<Path, JsValue> {
         let tags = js_array_to_tags_vec(js_tags);
         self.path.in_with_tags(tags, path::Via::Path(path.path.clone()));
@@ -257,11 +262,10 @@ impl Path {
     }
 
 
-
-
     ///////////////////////////
     // Out(values: String[], tags: String[])
     ///////////////////////////
+    #[wasm_bindgen(js_name = _out_values)]
     pub fn out_values(&mut self, js_values: &JsValue, js_tags: &JsValue) -> Result<Path, JsValue> {
         let nodes = js_array_to_values_vec(js_values);
         let tags = js_array_to_tags_vec(js_tags);
@@ -273,6 +277,7 @@ impl Path {
     ///////////////////////////
     // Out(path: Path, tags: String[])
     ///////////////////////////
+    #[wasm_bindgen(js_name = _out_path)]
     pub fn out_path(&mut self, path: &Path, js_tags: &JsValue) -> Result<Path, JsValue> {
         let tags = js_array_to_tags_vec(js_tags);
         self.path.out_with_tags(tags, path::Via::Path(path.path.clone()));
@@ -283,6 +288,7 @@ impl Path {
     ///////////////////////////
     // Both(values: String[], tags: String[])
     ///////////////////////////
+    #[wasm_bindgen(js_name = _both_values)]
     pub fn both_values(&mut self, js_values: &JsValue, js_tags: &JsValue) -> Result<Path, JsValue> {
         let nodes = js_array_to_values_vec(js_values);
         let tags = js_array_to_tags_vec(js_tags);
@@ -294,6 +300,7 @@ impl Path {
     ///////////////////////////
     // Both(path: Path, tags: String[])
     ///////////////////////////
+    #[wasm_bindgen(js_name = _both_path)]
     pub fn both_path(&mut self, path: &Path, js_tags: &JsValue) -> Result<Path, JsValue> {
         let tags = js_array_to_tags_vec(js_tags);
         self.path.both_with_tags(tags, path::Via::Path(path.path.clone()));
@@ -322,6 +329,7 @@ impl Path {
     ///////////////////////////
     // FollowRecursive(path: Path, maxDepth: int, tags: Stringp[])
     ///////////////////////////
+    #[wasm_bindgen(js_name = _follow_recursive_path)]
     pub fn follow_recursive_path(&mut self, path: &Path, js_tags: &JsValue, max_depth: Option<i32>) -> Result<Path, JsValue> {
         let tags = js_array_optional_to_tags_vec(js_tags);
         let max_depth = match max_depth { Some(d) => d, None => 50 };
@@ -333,6 +341,7 @@ impl Path {
     ///////////////////////////
     // FollowRecursive(value: String, maxDepth: int, tags: Stringp[])
     ///////////////////////////
+    #[wasm_bindgen(js_name = _follow_recursive_values)]
     pub fn follow_recursive_values(&mut self, js_values: &JsValue, js_tags: &JsValue, max_depth: Option<i32>) -> Result<Path, JsValue> {
         let values = js_array_to_values_vec(js_values);
         let tags = js_array_optional_to_tags_vec(js_tags);
