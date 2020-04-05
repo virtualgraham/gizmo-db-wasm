@@ -320,6 +320,7 @@ impl Path {
     ///////////////////////////
     // FollowR(path: Path)
     ///////////////////////////
+    #[wasm_bindgen(js_name = followR)]
     pub fn follow_r(&mut self, path: &Path) -> Result<Path, JsValue> {
         self.path.follow_reverse(path.path.clone());
         Ok(self.clone())
@@ -371,184 +372,202 @@ impl Path {
     }
 
 
-    // ///////////////////////////
-    // // Back(tag: String)
-    // ///////////////////////////
-    // pub fn back(self, tag: &JsValue) -> Result<Path, JsValue> {
-    //     self
-    // }
+    ///////////////////////////
+    // Back(tag: String)
+    ///////////////////////////
+    pub fn back(&mut self, tag: String) -> Result<Path, JsValue> {
+        let np = self.path.back(tag);
+        if let Some(p) = np {
+            self.path = p
+        }
+        Ok(self.clone())
+    }
 
-    // ///////////////////////////
-    // // Back(tags: String[])
-    // ///////////////////////////
-    // pub fn tag(self, tags: Box<[JsValue]>) -> Path {
-    //     self
-    // }
+    ///////////////////////////
+    // Tag(tags: String[])
+    ///////////////////////////
+    #[wasm_bindgen(js_name = _tag)]
+    pub fn tag(&mut self, js_tags: &JsValue) -> Result<Path, JsValue> {
+        let tags = js_array_optional_to_tags_vec(js_tags);
+        self.path.tag(tags);
+        Ok(self.clone())
+    }
 
-    // ///////////////////////////
-    // // As(tags: String[])
-    // ///////////////////////////
-    // #[wasm_bindgen(js_name = as)]
-    // pub fn r#as(self, tags: Box<[JsValue]>) -> Path {
-    //     self
-    // }
+    ///////////////////////////
+    // Has(predicate: String, object: String)
+    // *Has(predicate: Path, object: String)
+    // *Has(predicate: String, filters: Filter[])
+    // *Has(predicate: Path, filters: Filter[])
+    // HasR(predicate: String, object: String)
+    // *HasR(predicate: Path, object: String)
+    // *HasR(predicate: String, filters: Filter[])
+    // *HasR(predicate: Path, filters: Filter[])
+    ///////////////////////////
+    #[wasm_bindgen(js_name = _has_value_value)]
+    pub fn has_value_value(&mut self, predicate: &JsValue, object: &JsValue, rev: bool) -> Result<Path, JsValue> {
+        let nodes = js_array_to_values_vec(predicate);
+        let object = js_array_to_values_vec(object);
+        self.path.has(values_to_via(nodes), rev, object);
+        Ok(self.clone())
+    }
 
-    // ///////////////////////////
-    // // Has(predicate: String, object: String)
-    // /////////////////////////// 
+    #[wasm_bindgen(js_name = _has_path_value)]
+    pub fn has_path_value(&mut self, predicate: &Path, object: &JsValue, rev: bool) -> Result<Path, JsValue> {
+        let object = js_array_to_values_vec(object);
+        self.path.has(path::Via::Path(predicate.path.clone()), rev, object);
+        Ok(self.clone())
+    }
 
-    // ///////////////////////////
-    // // *Has(predicate: Path, object: String)
-    // // *Has(predicate: String, filters: Filter[])
-    // // *Has(predicate: Path, filters: Filter[])
-    // ///////////////////////////
-    // pub fn has(self, predicate: &JsValue, object: &JsValue) -> Path {
-    //     self
-    // }
+    #[wasm_bindgen(js_name = _has_value_filter)]
+    pub fn has_value_filter(&mut self, predicate: &JsValue, object: &JsValue, rev: bool) -> Result<Path, JsValue> {
+        let nodes = js_array_to_values_vec(predicate);
+        self.path.has_filter(values_to_via(nodes), rev, js_array_to_value_filters(object));
+        Ok(self.clone())
+    }
 
-    // ///////////////////////////
-    // // HasR(predicate: String, object: String)
-    // ///////////////////////////
-    
-    // ///////////////////////////
-    // // *HasR(predicate: Path, object: String)
-    // // *HasR(predicate: String, filters: Filter[])
-    // // *HasR(predicate: Path, filters: Filter[])
-    // ///////////////////////////
-    // pub fn has_r(self, args: Option<Box<[JsValue]>>) -> Path {
-    //     self
-    // }
+    #[wasm_bindgen(js_name = _has_path_filter)]
+    pub fn has_path_filter(&mut self, predicate: &Path, object: &JsValue, rev: bool) -> Result<Path, JsValue> {
+        self.path.has_filter(path::Via::Path(predicate.path.clone()), rev, js_array_to_value_filters(object));
+        Ok(self.clone())
+    }
 
+    ///////////////////////////
+    // Save(values: String[], tag: String)
+    ///////////////////////////
+    #[wasm_bindgen(js_name = _save_values)]
+    pub fn save_values(&mut self, js_values: &JsValue, tag: String, rev: bool, opt: bool) -> Result<Path, JsValue> {
+        let nodes = js_array_to_values_vec(js_values);
+        self.path.save(values_to_via(nodes), tag, rev, opt);
+        Ok(self.clone())
+    }
 
-    // ///////////////////////////
-    // // Save(predicate: String, tag: String)
-    // ///////////////////////////
-    // pub fn save(self, predicate: &JsValue, object: &JsValue) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // SaveR(predicate: String, tag: String)
-    // ///////////////////////////
-    // pub fn save_r(self, args: Option<Box<[JsValue]>>) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // SaveOpt(predicate: String, tag: String)
-    // ///////////////////////////
-    // pub fn save_opt(self, args: Option<Box<[JsValue]>>) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // SaveOptR(predicate: String, tag: String)
-    // ///////////////////////////
-    // pub fn save_opt_r(self, args: Option<Box<[JsValue]>>) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // Except(path: Path)
-    // ///////////////////////////
-    // pub fn except(self, path: &JsValue) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // Unique()
-    // ///////////////////////////
-    // pub fn unique(self) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // Difference(path: Path)
-    // ///////////////////////////
-    // pub fn difference(self, path: &JsValue) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // Labels()
-    // ///////////////////////////
-    // pub fn labels(self) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // InPredicates(tag:String)
-    // ///////////////////////////
-    // pub fn in_predicates(self, tag: &JsValue) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // OutPredicates()
-    // ///////////////////////////
-    // pub fn out_predicates(self, tag: &JsValue) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // SaveInPredicates(tag:String)
-    // ///////////////////////////
-    // pub fn save_in_predicates(self, tag: &JsValue) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // SaveOutPredicates(tag:String)
-    // ///////////////////////////
-    // pub fn save_out_predicates(self, tag: &JsValue) -> Path {
-    //     self
-    // }
+    ///////////////////////////
+    // Save(path: Path, tags: String)
+    ///////////////////////////
+    #[wasm_bindgen(js_name = _save_path)]
+    pub fn save_path(&mut self, path: &Path, tag: String, rev: bool, opt: bool) -> Result<Path, JsValue> {
+        self.path.save(path::Via::Path(path.path.clone()), tag, rev, opt);
+        Ok(self.clone())
+    }
 
 
-    // ///////////////////////////
-    // // LabelContext(values: String[], tags: String[])
-    // ///////////////////////////
-    // pub fn label_context_values(self, predicate_path: Option<Box<[JsValue]>>, tags: Option<Box<[JsValue]>>) -> Path {
-    //     self
-    // }
 
-    // ///////////////////////////
-    // // LabelContext(path: Path, tags: String[])
-    // ///////////////////////////
-    // pub fn label_context_path(self, predicate_path: Option<Box<[JsValue]>>, tags: Option<Box<[JsValue]>>) -> Path {
-    //     self
-    // }
+    ///////////////////////////
+    // Except(path: Path)
+    // Difference(path: Path)
+    ///////////////////////////
+    pub fn except(&mut self, path: &Path) -> Result<Path, JsValue> {
+        self.path.except(path.path.clone());
+        Ok(self.clone())
+    }
+
+    ///////////////////////////
+    // Unique()
+    ///////////////////////////
+    pub fn unique(&mut self) -> Result<Path, JsValue> {
+        self.path.unique();
+        Ok(self.clone())
+    }
+
+    ///////////////////////////
+    // Labels()
+    ///////////////////////////
+    pub fn labels(&mut self) -> Result<Path, JsValue> {
+        self.path.labels();
+        Ok(self.clone())
+    }
+
+    ///////////////////////////
+    // InPredicates(tag:String)
+    ///////////////////////////
+    #[wasm_bindgen(js_name = inPredicates)]
+    pub fn in_predicates(&mut self) -> Result<Path, JsValue> {
+        self.path.predicates(true);
+        Ok(self.clone())
+    }
+
+    ///////////////////////////
+    // OutPredicates()
+    ///////////////////////////
+    #[wasm_bindgen(js_name = outPredicates)]
+    pub fn out_predicates(&mut self) -> Result<Path, JsValue> {
+        self.path.predicates(false);
+        Ok(self.clone())
+    }
+
+    ///////////////////////////
+    // SaveInPredicates(tag:String)
+    ///////////////////////////
+    #[wasm_bindgen(js_name = saveInPredicates)]
+    pub fn save_in_predicates(&mut self, tag: String) -> Result<Path, JsValue> {
+        self.path.save_predicates(tag, true);
+        Ok(self.clone())
+    }
+
+    ///////////////////////////
+    // SaveOutPredicates(tag:String)
+    ///////////////////////////
+    #[wasm_bindgen(js_name = saveOutPredicates)]
+    pub fn save_out_predicates(&mut self, tag: String) -> Result<Path, JsValue> {
+        self.path.save_predicates(tag, false);
+        Ok(self.clone())
+    }
 
 
-    // ///////////////////////////
-    // // Filter(filter: Filter)
-    // ///////////////////////////
-    // pub fn filter(self, args: Option<Box<[JsValue]>>) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // Limit(limit: Number)
-    // ///////////////////////////
-    // pub fn limit(self, limit: &JsValue) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // Skip(offset: Number)
-    // ///////////////////////////
-    // pub fn skip(self, offset: &JsValue) -> Path {
-    //     self
-    // }
-
-    // ///////////////////////////
-    // // Order()
-    // ///////////////////////////
-    // pub fn order(self) -> Path {
-    //     self
-    // }
+    ///////////////////////////
+    // LabelContext(values: String[], tags: String[])
+    ///////////////////////////
+    #[wasm_bindgen(js_name = _label_context_values)]
+    pub fn label_context_values(&mut self, js_values: &JsValue, js_tags: &JsValue) -> Result<Path, JsValue> {
+        let labels = js_array_to_values_vec(js_values);
+        let tags = js_array_to_tags_vec(js_tags);
+        self.path.label_context_with_tags(values_to_via(labels), tags);
+        Ok(self.clone())
+    }
 
 
+    ///////////////////////////
+    // LabelContext(values: Path, tags: String[])
+    ///////////////////////////
+    #[wasm_bindgen(js_name = _label_context_path)]
+    pub fn label_context_path(&mut self, path: &Path, js_tags: &JsValue) -> Result<Path, JsValue> {
+        let tags = js_array_to_tags_vec(js_tags);
+        self.path.label_context_with_tags(path::Via::Path(path.path.clone()), tags);
+        Ok(self.clone())
+    }
+
+
+    ///////////////////////////
+    // Filter(filter: Filter)
+    ///////////////////////////
+    pub fn filter(&mut self, filters: &JsValue) -> Result<Path, JsValue> {
+        self.path.filters(js_array_to_value_filters(filters));
+        Ok(self.clone())
+    }
+
+    ///////////////////////////
+    // Limit(limit: Number)
+    ///////////////////////////
+    pub fn limit(&mut self, limit: i64) -> Result<Path, JsValue> {
+        self.path.limit(limit);
+        Ok(self.clone())
+    }
+
+    ///////////////////////////
+    // Skip(offset: Number)
+    ///////////////////////////
+    pub fn skip(&mut self, offset: i64) -> Result<Path, JsValue> {
+        self.path.skip(offset);
+        Ok(self.clone())
+    }
+
+    ///////////////////////////
+    // Order()
+    ///////////////////////////
+    pub fn order(&mut self) -> Result<Path, JsValue> {
+        self.path.order();
+        Ok(self.clone())
+    }
 }
 
 
@@ -597,43 +616,88 @@ impl ValueIterator {
 }
 
 
-
-#[wasm_bindgen]
-pub struct ValueFilter( Rc<dyn shape::ValueFilter> );
-
-
-#[wasm_bindgen]
-pub fn lt(v: &JsValue) -> ValueFilter {
-    let v = js_to_value_ignore(v);
-    ValueFilter ( gizmo::lt(v) )
+fn js_array_to_value_filters(v: &JsValue) -> Vec<Rc<dyn shape::ValueFilter>> {
+    if js_sys::Array::is_array(v) {
+        let mut res = Vec::new();
+        let array = js_sys::Array::from(v);
+        for value in array.values().into_iter() {
+            if let Ok(val) = value {
+                res.append(&mut js_object_to_value_filters(&val));
+            }
+        }
+        res
+    } else {
+        return js_object_to_value_filters(&v)
+    }
 }
 
-#[wasm_bindgen]
-pub fn lte(v: &JsValue) -> ValueFilter {
-    let v = js_to_value_ignore(v);
-    ValueFilter ( gizmo::lte(v) )
-}
 
-#[wasm_bindgen]
-pub fn gt(v: &JsValue) -> ValueFilter {
-    let v = js_to_value_ignore(v);
-    ValueFilter ( gizmo::gt(v) )
-}
+fn js_object_to_value_filters(obj: &JsValue) -> Vec<Rc<dyn shape::ValueFilter>> {
 
-#[wasm_bindgen]
-pub fn gte(v: &JsValue) -> ValueFilter {
-    let v = js_to_value_ignore(v);
-    ValueFilter ( gizmo::gte(v) )
-}
+    let mut res = Vec::new();
 
-#[wasm_bindgen]
-pub fn regex(pattern: String, iri: bool) -> ValueFilter {
-    ValueFilter ( gizmo::regex(pattern, iri) )
-}
+    if !obj.is_object() {
+        return res
+    }
 
-#[wasm_bindgen]
-pub fn like(pattern: String) -> ValueFilter {
-    ValueFilter ( gizmo::like(pattern) )
+    if let Ok(keys) = js_sys::Reflect::own_keys(obj) {
+        for key in keys.values().into_iter() {
+            if let Ok(k) = key {
+                if let Some(name) = k.as_string() {
+
+                    if name == "lt" {
+                        if let Ok(value) = js_sys::Reflect::get(obj, &k) {
+                            res.push(gizmo::lt(js_to_value_ignore(&value)))
+                        }
+                    } 
+                    
+                    if name == "lte" {
+                        if let Ok(value) = js_sys::Reflect::get(obj, &k) {
+                            res.push(gizmo::lte(js_to_value_ignore(&value)))
+                        }
+                    } 
+                    
+                    if name == "gt" {
+                        if let Ok(value) = js_sys::Reflect::get(obj, &k) {
+                            res.push(gizmo::gt(js_to_value_ignore(&value)))
+                        }
+                    } 
+                    
+                    if name == "gte" {
+                        if let Ok(value) = js_sys::Reflect::get(obj, &k) {
+                            res.push(gizmo::gte(js_to_value_ignore(&value)))
+                        }
+                    } 
+                    
+                    if name == "like" {
+                        if let Ok(pattern) = js_sys::Reflect::get(obj, &k) {
+                            if let Some(p) = pattern.as_string() {
+                                //console::log_2(&JsValue::from_str("like"), &JsValue::from_str(&p));
+                                res.push(gizmo::like(p))
+                            }
+                        }
+                    }
+
+                    if name == "regex" {
+                        if let Ok(pattern) = js_sys::Reflect::get(obj, &k) {
+                            if let Some(p) = pattern.as_string() {
+                                let iri = if let Ok(iri) = js_sys::Reflect::get(obj, &"iri".into()) {
+                                    //console::log_3(&JsValue::from_str("regex iri"), &iri, &JsValue::from_bool(iri.is_truthy()));
+                                    iri.is_truthy()
+                                } else {
+                                    //console::log_1(&JsValue::from_str("regex iri js_sys::Reflect::get Err"));
+                                    false
+                                };
+                                res.push(gizmo::regex(p, iri))
+                            }
+                        }
+                    } 
+                }
+            }
+        }
+    }
+
+    res
 }
 
 
@@ -673,7 +737,15 @@ fn hash_map_to_js_obj(hash_map: &HashMap<String, Value>) -> JsValue{
 
 fn js_array_to_values_vec(js: &JsValue) -> Vec<Value> {
     if !js_sys::Array::is_array(js) {
-        return Vec::new()
+        if js.is_undefined() || js.is_null() {
+            return Vec::new()
+        } else {
+            if let Some(v) = js_to_value(&js) {
+                return vec![v]
+            } else {
+                return Vec::new()
+            }
+        }
     }
     
     let array = js_sys::Array::from(js);
@@ -685,6 +757,10 @@ fn js_array_to_values_vec(js: &JsValue) -> Vec<Value> {
 
 
 fn js_array_optional_to_tags_vec(js: &JsValue) -> Vec<String> {
+    if let Some(s) = js.as_string() {
+        return vec![s]
+    }
+
     if !js_sys::Array::is_array(js) {
         return Vec::new()
     }
@@ -698,6 +774,11 @@ fn js_array_optional_to_tags_vec(js: &JsValue) -> Vec<String> {
 
 
 fn js_array_to_tags_vec(js: &JsValue) -> Vec<String> {
+
+    if let Some(s) = js.as_string() {
+        return vec![s]
+    }
+
     if !js_sys::Array::is_array(js) {
         return Vec::new()
     }
@@ -734,7 +815,7 @@ fn js_to_value(js: &JsValue) -> Option<Value> {
 
     let opt_s = js.as_string();
     if let Some(s) = opt_s {
-        return Some(Value::String(s))
+        return Some(Value::from(s))
     } 
 
     None

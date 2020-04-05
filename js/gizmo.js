@@ -1,8 +1,27 @@
-import * as lib from "../pkg/index.js"; // output from wasm_bindgen build
+import * as lib from "../pkg/index.js";
+export * from "../pkg/index.js";
 
-function is_path(args) {
+// args[0].prototype.contructor.name == "Path"
+function has_path(args) {
     args.length >= 1 && 
     (((args[0] || {}).prototype || {}).constructor || {}).name == "Path"
+}
+
+// the second argument is an object or an array of objects
+function has_filter(args, idx) {
+    args.length > idx &&
+    (
+        (
+            Array.isArray(args[idx]) && 
+            args[idx].length > 0 && 
+            args[idx][0] != null && 
+            typeof args[idx][0] === 'object'
+        ) || 
+        (
+            args[idx] != null && 
+            typeof args[idx] === 'object'
+        )
+    )
 }
 
 lib.TagIterator.prototype[Symbol.iterator] = function() { return this; }
@@ -11,11 +30,11 @@ lib.ValueIterator.prototype[Symbol.iterator] = function() { return this; }
 // lib.GraphWrapper.prototype.write
 // lib.GraphWrapper.prototype.delete
 
-lib.Graph.prototype.v = function() {
+lib.Graph.prototype.V = function() {
     return this._v(Array.prototype.slice.call(arguments));
 }
 
-lib.Graph.prototype.m = function() {
+lib.Graph.prototype.M = function() {
     return this._m(Array.prototype.slice.call(arguments));
 }
 
@@ -24,7 +43,7 @@ lib.Path.prototype.is = function() {
 }
 
 lib.Path.prototype.in = function() {
-    if (is_path(arguments)) {
+    if (has_path(arguments)) {
         return this._in_path(arguments[0], arguments[1])
     } else {
         return this._in_values(arguments[0], arguments[1])
@@ -32,7 +51,7 @@ lib.Path.prototype.in = function() {
 }
 
 lib.Path.prototype.out = function() {
-    if (is_path(arguments)) {
+    if (has_path(arguments)) {
         return this._out_path(arguments[0], arguments[1])
     } else {
         return this._out_values(arguments[0], arguments[1])
@@ -40,50 +59,147 @@ lib.Path.prototype.out = function() {
 }
 
 lib.Path.prototype.both = function() {
-    if (is_path(arguments)) {
+    if (has_path(arguments)) {
         return this._both_path(arguments[0], arguments[1])
     } else {
         return this._both_values(arguments[0], arguments[1])
     }
 }
 
-lib.Path.prototype.follow_recursive = function() {
-    if (is_path(arguments)) {
+lib.Path.prototype.followRecursive = function() {
+    if (has_path(arguments)) {
         return this._follow_recursive_path(arguments[0], arguments[1], arguments[2])
     } else {
         return this._follow_recursive_values(arguments[0], arguments[1], arguments[2])
     }
 }
 
-const lt = lib.lt;
-const lte =lib.lte;
-const gt =lib.gt;
-const gte =lib.gte;
-const regex =lib.regex;
-const like =lib.like;
-const NewMemoryGraph =lib.NewMemoryGraph;
-const Graph =lib.Graph;
-const GraphWrapper =lib.GraphWrapper;
-const Path =lib.Path;
-const Session =lib.Session;
-const TagIterator =lib.TagIterator;
-const ValueIterator =lib.ValueIterator;
-const ValueFilter = lib.ValueFilter;
-
-export {
-    lt,
-    lte,
-    gt,
-    gte,
-    regex,
-    like,
-    NewMemoryGraph,
-    Graph,
-    GraphWrapper,
-    Path,
-    Session,
-    TagIterator,
-    ValueIterator,
-    ValueFilter
+lib.Path.prototype.and = function() {
+    return this.intersect(...arguments)
 }
 
+lib.Path.prototype.or = function() {
+    return this.union(...arguments)
+}
+
+lib.Path.prototype.tag = function() {
+    return this._tag(Array.prototype.slice.call(arguments));
+}
+
+lib.Path.prototype.as = function() {
+    return this.tag(...arguments)
+}
+
+lib.Path.prototype.has = function() {
+    if (has_path(arguments)) {
+        if (has_filter(arguments, 1)) {
+            return this._has_path_filter(arguments[0], arguments[1], false)
+        } else {
+            return this._has_path_value(arguments[0], arguments[1], false)
+        }
+    } else {
+        if (has_filter(arguments, 1)) {
+            return this._has_value_filter(arguments[0], arguments[1], false)
+        } else {
+            return this._has_value_value(arguments[0], arguments[1], false)
+        }
+    }
+}
+
+lib.Path.prototype.hasR = function() {
+    if (has_path(arguments)) {
+        if (has_filter(arguments, 1)) {
+            return this._has_path_filter(arguments[0], arguments[1], true)
+        } else {
+            return this._has_path_value(arguments[0], arguments[1], true)
+        }
+    } else {
+        if (has_filter(arguments, 1)) {
+            return this._has_value_filter(arguments[0], arguments[1], true)
+        } else {
+            return this._has_value_value(arguments[0], arguments[1], true)
+        }
+    }
+}
+
+lib.Path.prototype.save = function() {
+    if (has_path(arguments)) {
+        return this._save_path(arguments[0], arguments[1], false, false)
+    } else {
+        return this._save_values(arguments[0], arguments[1], false, false)
+    }
+}
+
+lib.Path.prototype.saveR = function() {
+    if (has_path(arguments)) {
+        return this._save_path(arguments[0], arguments[1], true, false)
+    } else {
+        return this._save_values(arguments[0], arguments[1], true, false)
+    }
+}
+
+lib.Path.prototype.saveOpt = function() {
+    if (has_path(arguments)) {
+        return this._save_path(arguments[0], arguments[1], false, true)
+    } else {
+        return this._save_values(arguments[0], arguments[1], false, true)
+    }
+}
+
+lib.Path.prototype.saveOptR = function() {
+    if (has_path(arguments)) {
+        return this._save_path(arguments[0], arguments[1], false, false)
+    } else {
+        return this._save_values(arguments[0], arguments[1], false, false)
+    }
+}
+
+lib.Path.prototype.difference = function() {
+    return this.except(...arguments)
+}
+
+lib.Path.prototype.labelContext = function() {
+    if (has_path(arguments)) {
+        return this._label_context_path(arguments[0], arguments[1])
+    } else {
+        return this._label_context_values(arguments[0], arguments[1])
+    }
+}
+
+
+export function lt(value) {
+    return {
+        lt: value
+    }
+}
+
+export function lte(value) {
+    return {
+        lte: value
+    }
+}
+
+export function gt(value) {
+    return {
+        gt: value
+    }
+}
+
+export function gte(value) {
+    return {
+        gte: value
+    }
+}
+
+export function regex(pattern, iri) {
+    return {
+        regex: pattern,
+        iri: iri
+    }
+}
+
+export function like(pattern) {
+    return {
+        like: pattern,
+    }
+}
