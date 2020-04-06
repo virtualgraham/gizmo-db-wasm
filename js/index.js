@@ -27,6 +27,20 @@
         ["<greg>", "<status>", "smart_person", "<smart_graph>"]
     ]);
 
+
+
+    // let quad_iter = session.read();
+
+    // session.delete([
+    //     ["<alice>", "<follows>", "<bob>"],
+    //     ["<bob>", "<follows>", "<fred>"]
+    // ]);
+
+    // let read_result = Array.from(session.read({sub: []}));
+    // console.log("read_result", quad_iter, read_result);
+
+
+
     let g = session.g();
 
     /////////////////////////

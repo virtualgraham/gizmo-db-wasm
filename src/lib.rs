@@ -10,6 +10,7 @@ use gizmo_db::query::gizmo;
 use gizmo_db::graph::quad::{QuadStore, QuadWriter, IgnoreOptions, Quad};
 use gizmo_db::graph::memstore;
 use gizmo_db::graph::iterator;
+use gizmo_db::query::shape::Shape;
 use gizmo_db::query::shape;
 use gizmo_db::graph::value::Value;
 use gizmo_db::graph::number::Number;
@@ -105,6 +106,7 @@ pub struct Session {
 
 #[wasm_bindgen]
 impl Session {
+    // an array of quads, where each quad is represented as an array of 3 or 4 values
     fn write(&self, quads: &JsValue) -> Result<(), JsValue> {
         let quads: Vec<Quad> = js_array_to_quad_vec(quads);
         for quad in &quads {
@@ -114,13 +116,29 @@ impl Session {
     }
 
     // an object that initializes filter_quads
+    // multiple direction properties are combined with AND logic
+    // arrays of values are combined with OR logic
+    // {
+    //     sub: String | [String],
+    //     pred: String | [String]
+    //     obj: String | [String]
+    //     label: String | [String]
+    // }
     fn read(&self, filter: &JsValue) -> Result<QuadIterator, JsValue> {
-        let values = js_to_filter_quads(filter);
-        let it = values.borrow_mut().build_iterator(self.qs.clone()).borrow().iterate();
+
+        let mut quad_filter = js_to_filter_quads(filter);
+
+        let quad_iterator = if quad_filter.0.is_empty() {
+            self.qs.borrow().quads_all_iterator()
+        } else {
+            quad_filter.build_iterator(self.qs.clone())
+        };
+
+        let it = quad_iterator.borrow().iterate();
         return Ok(QuadIterator { iterator: Box::new(iterator::iterate::QuadIterator::new(self.qs.clone(), it)) })
     }
 
-    // a quad or an array of quads
+    // an array of quads, where each quad is represented as an array of 3 or 4 values
     fn delete(&self, quads: &JsValue) -> Result<(), JsValue> {
         let quads: Vec<Quad> = js_array_to_quad_vec(quads);
         for quad in &quads {
@@ -737,7 +755,6 @@ fn js_object_to_value_filters(obj: &JsValue) -> Vec<Rc<dyn shape::ValueFilter>> 
                     if name == "like" {
                         if let Ok(pattern) = js_sys::Reflect::get(obj, &k) {
                             if let Some(p) = pattern.as_string() {
-                                //console::log_2(&JsValue::from_str("like"), &JsValue::from_str(&p));
                                 res.push(gizmo::like(p))
                             }
                         }
@@ -747,10 +764,8 @@ fn js_object_to_value_filters(obj: &JsValue) -> Vec<Rc<dyn shape::ValueFilter>> 
                         if let Ok(pattern) = js_sys::Reflect::get(obj, &k) {
                             if let Some(p) = pattern.as_string() {
                                 let iri = if let Ok(iri) = js_sys::Reflect::get(obj, &"iri".into()) {
-                                    //console::log_3(&JsValue::from_str("regex iri"), &iri, &JsValue::from_bool(iri.is_truthy()));
                                     iri.is_truthy()
                                 } else {
-                                    //console::log_1(&JsValue::from_str("regex iri js_sys::Reflect::get Err"));
                                     false
                                 };
                                 res.push(gizmo::regex(p, iri))
@@ -1018,7 +1033,7 @@ fn js_array_to_values_optional_vec(js: &JsValue) -> Option<Vec<Value>> {
 }
 
 
-fn js_to_filter_quads(filter: &JsValue) -> Rc<RefCell<dyn shape::Shape>> {
+fn js_to_filter_quads(filter: &JsValue) -> shape::Quads {
     let mut subject: Option<Vec<Value>> = None;
     let mut predicate: Option<Vec<Value>> = None;
     let mut object: Option<Vec<Value>> = None;
