@@ -3,13 +3,15 @@ export * from "../pkg/index.js";
 
 // args[0].prototype.contructor.name == "Path"
 function has_path(args) {
-    args.length >= 1 && 
-    (((args[0] || {}).prototype || {}).constructor || {}).name == "Path"
+    if (args.length >= 1 && args[0] != null && typeof args[0] === "object") {
+        return ((Object.getPrototypeOf(args[0]) || {}).constructor || {}).name == "Path"
+    }
+    return false
 }
 
-// the second argument is an object or an array of objects
+// the argument at idx is an object or an array of objects
 function has_filter(args, idx) {
-    args.length > idx &&
+    return args.length > idx &&
     (
         (
             Array.isArray(args[idx]) && 
@@ -26,6 +28,7 @@ function has_filter(args, idx) {
 
 lib.TagIterator.prototype[Symbol.iterator] = function() { return this; }
 lib.ValueIterator.prototype[Symbol.iterator] = function() { return this; }
+lib.QuadIterator.prototype[Symbol.iterator] = function() { return this; }
 
 // lib.GraphWrapper.prototype.write
 // lib.GraphWrapper.prototype.delete
@@ -37,6 +40,44 @@ lib.Graph.prototype.V = function() {
 lib.Graph.prototype.M = function() {
     return this._m(Array.prototype.slice.call(arguments));
 }
+
+
+
+lib.Path.prototype.toArray = function() {
+    return Array.from(this.iterValues())
+}
+
+lib.Path.prototype.toValue = function() {
+    return this.iter_values().next().value
+}
+
+lib.Path.prototype.tagArray = function() {
+    return Array.from(this.iterTags())
+}
+
+lib.Path.prototype.tagValue = function() {
+    return this.iter_tags().next().value
+}
+
+lib.Path.prototype.forEach = function(a, b) {
+
+    let iter, callback;
+
+    if (typeof a === "function") {
+        iter = this.iter_tags();
+        callback = a;
+    } else if (typeof b === "function") {
+        iter = this.iter_tags(a);
+        callback = b;
+    }
+
+    for (let result of iter) {
+        callback(result);
+    }
+    
+}
+
+
 
 lib.Path.prototype.is = function() {
     return this._is(Array.prototype.slice.call(arguments));
@@ -99,8 +140,10 @@ lib.Path.prototype.has = function() {
         }
     } else {
         if (has_filter(arguments, 1)) {
+            //console.log("lib.Path.prototype.has has_filter", arguments[0], arguments[1])
             return this._has_value_filter(arguments[0], arguments[1], false)
         } else {
+            //console.log("lib.Path.prototype.has !has_filter", arguments[0], arguments[1])
             return this._has_value_value(arguments[0], arguments[1], false)
         }
     }

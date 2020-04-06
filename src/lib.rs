@@ -71,6 +71,7 @@ pub struct GraphWrapper {
 }
 
 
+
 #[wasm_bindgen]
 impl GraphWrapper {
     pub fn graph(&self) -> Graph {
@@ -81,15 +82,15 @@ impl GraphWrapper {
         return self.graph.clone();
     }
 
-    pub fn write(&self, quads: &JsValue) {
+    pub fn write(&self, quads: &JsValue) -> Result<(), JsValue> {
         self.session.borrow().write(quads)
     }
 
-    pub fn read(&self) -> JsValue {
-        self.session.borrow().read()
+    pub fn read(&self, filter: &JsValue) -> Result<QuadIterator, JsValue> {
+        self.session.borrow().read(filter)
     }
 
-    pub fn delete(&self, quads: &JsValue) {
+    pub fn delete(&self, quads: &JsValue) -> Result<(), JsValue> {
         self.session.borrow().delete(quads)
     }
 }
@@ -104,21 +105,28 @@ pub struct Session {
 
 #[wasm_bindgen]
 impl Session {
-    fn write(&self, quads: &JsValue) {
+    fn write(&self, quads: &JsValue) -> Result<(), JsValue> {
         let quads: Vec<Quad> = js_array_to_quad_vec(quads);
         for quad in &quads {
             self.qw.add_quad(quad.clone()).unwrap();
         }
+        Ok(())
     }
 
-    fn read(&self) -> JsValue {
-        // TODO: implement
-        quad_vec_to_js(&vec![Quad::new("a", "b", "c", "d")])
+    // an object that initializes filter_quads
+    fn read(&self, filter: &JsValue) -> Result<QuadIterator, JsValue> {
+        let values = js_to_filter_quads(filter);
+        let it = values.borrow_mut().build_iterator(self.qs.clone()).borrow().iterate();
+        return Ok(QuadIterator { iterator: Box::new(iterator::iterate::QuadIterator::new(self.qs.clone(), it)) })
     }
 
-    fn delete(&self, quads: &JsValue) {
-        // TODO: implement
-        // let quads: Vec<Quad> = quads.into_serde().unwrap();
+    // a quad or an array of quads
+    fn delete(&self, quads: &JsValue) -> Result<(), JsValue> {
+        let quads: Vec<Quad> = js_array_to_quad_vec(quads);
+        for quad in &quads {
+            self.qw.remove_quad(quad.clone()).unwrap();
+        }
+        Ok(())
     }
 
     fn run_tag_each_iterator(&mut self, it: Rc<RefCell<dyn iterator::Shape>>) -> iterator::iterate::TagEachIterator {
@@ -198,29 +206,51 @@ impl Path {
     ///////////////
 
     pub fn all(&self) -> TagIterator {
+        self.iter_tags(None)
+    }
+
+    #[wasm_bindgen(js_name = getLimit)]
+    pub fn get_limit(&self, limit: Option<usize>) -> TagIterator {
+        self.iter_tags(limit)
+    }
+
+    #[wasm_bindgen(js_name = iterTags)]
+    pub fn iter_tags(&self, limit: Option<usize>) -> TagIterator {
         let it = self.build_iterator_tree();
         let it = iterator::save::tag(&it, &"id");
         let qs = self.session.borrow().qs.clone();
-        let iterator = self.session.borrow_mut().run_tag_each_iterator(it).filter_map(move |r| tags_to_value_map(&r, &*qs.borrow()));
+
+        let iterator: Box<dyn Iterator<Item = HashMap<std::string::String, Value>>> = if let Some(l) = limit {
+            Box::new(self.session.borrow_mut().run_tag_each_iterator(it).take(l).filter_map(move |r| tags_to_value_map(&r, &*qs.borrow())))
+        } else {
+            Box::new(self.session.borrow_mut().run_tag_each_iterator(it).filter_map(move |r| tags_to_value_map(&r, &*qs.borrow())))
+        };
+
         TagIterator {
             iterator: Box::new(iterator)
         }
     }
 
-    pub fn values(&self) -> ValueIterator {
+    #[wasm_bindgen(js_name = iterValues)]
+    pub fn iter_values(&self, limit: Option<usize>) -> ValueIterator {
         let it = self.build_iterator_tree();
         let it = iterator::save::tag(&it, &"id");
         let qs = self.session.borrow().qs.clone();
-        let iterator = self.session.borrow_mut().run_each_iterator(it).filter_map(move |r| ref_to_value(&r, &*qs.borrow()));
+
+        let iterator: Box<dyn Iterator<Item = Value>> = if let Some(l) = limit {
+            Box::new(self.session.borrow_mut().run_each_iterator(it).take(l).filter_map(move |r| ref_to_value(&r, &*qs.borrow())))
+        } else {
+            Box::new(self.session.borrow_mut().run_each_iterator(it).filter_map(move |r| ref_to_value(&r, &*qs.borrow())))
+        };
 
         ValueIterator {
-            iterator: Box::new(iterator)
+            iterator: iterator
         }
     }
 
-    pub fn count(&mut self) -> i64 {
+    pub fn count(&mut self) -> i32 {
         let it = self.build_iterator_tree();
-        self.session.borrow_mut().run_each_iterator(it).count() as i64
+        self.session.borrow_mut().run_each_iterator(it).count() as i32
     }
 
 
@@ -384,6 +414,7 @@ impl Path {
     }
 
     ///////////////////////////
+    // As(tags: String[])
     // Tag(tags: String[])
     ///////////////////////////
     #[wasm_bindgen(js_name = _tag)]
@@ -435,9 +466,22 @@ impl Path {
     // Save(values: String[], tag: String)
     ///////////////////////////
     #[wasm_bindgen(js_name = _save_values)]
-    pub fn save_values(&mut self, js_values: &JsValue, tag: String, rev: bool, opt: bool) -> Result<Path, JsValue> {
-        let nodes = js_array_to_values_vec(js_values);
-        self.path.save(values_to_via(nodes), tag, rev, opt);
+    pub fn save_values(&mut self, js_value: &JsValue, tag: Option<String>, rev: bool, opt: bool) -> Result<Path, JsValue> {
+        let node = js_to_value_ignore(js_value);
+        if let Value::None = node {
+            return Err(JsValue::from_str("must specify a predicate"))
+        } 
+        if let Value::Null = node {
+            return Err(JsValue::from_str("must specify a predicate"))
+        } 
+
+        let tag = if let Some(t) = tag {
+            t
+        } else {
+            node.to_string()
+        };
+
+        self.path.save(values_to_via(vec![node]), tag, rev, opt);
         Ok(self.clone())
     }
 
@@ -548,16 +592,16 @@ impl Path {
     ///////////////////////////
     // Limit(limit: Number)
     ///////////////////////////
-    pub fn limit(&mut self, limit: i64) -> Result<Path, JsValue> {
-        self.path.limit(limit);
+    pub fn limit(&mut self, limit: i32) -> Result<Path, JsValue> {
+        self.path.limit(limit as i64);
         Ok(self.clone())
     }
 
     ///////////////////////////
     // Skip(offset: Number)
     ///////////////////////////
-    pub fn skip(&mut self, offset: i64) -> Result<Path, JsValue> {
-        self.path.skip(offset);
+    pub fn skip(&mut self, offset: i32) -> Result<Path, JsValue> {
+        self.path.skip(offset as i64);
         Ok(self.clone())
     }
 
@@ -570,6 +614,27 @@ impl Path {
     }
 }
 
+
+#[wasm_bindgen]
+pub struct QuadIterator {
+    iterator: Box<dyn Iterator<Item = Quad>>
+}
+
+#[wasm_bindgen]
+impl QuadIterator {
+    pub fn next(&mut self) -> Result<JsValue, JsValue> {
+        let obj:JsValue = js_sys::Object::new().into();
+
+        if let Some(next) = self.iterator.next() {
+            js_sys::Reflect::set(&obj, &"value".into(), &quad_to_js(&next))?;
+            js_sys::Reflect::set(&obj, &"done".into(), &JsValue::from_bool(false))?;
+        } else {
+            js_sys::Reflect::set(&obj, &"done".into(), &JsValue::from_bool(true))?;
+        }
+
+        Ok(obj)
+    }
+}
 
 
 #[wasm_bindgen]
@@ -831,15 +896,6 @@ fn js_to_value_ignore(js: &JsValue) -> Value {
 }
 
 
-// fn js_prop_to_value(res: Result<JsValue, JsValue>) -> Value {
-//     if let Ok(js) = res {
-//         js_to_value_ignore(&js)
-//     }  else {
-//         Value::None
-//     }
-// }
-
-
 fn js_to_quad(js: &JsValue) -> Option<Quad> {
 
     if !js_sys::Array::is_array(js) {
@@ -916,7 +972,7 @@ fn quad_vec_to_js(quads: &Vec<Quad>) -> JsValue {
 }
 
 
-// instead of ignoring invalid data return result with error
+// TODO: instead of ignoring invalid data return result with error
 fn js_array_to_quad_vec(js: &JsValue) -> Vec<Quad> {
     if !js_sys::Array::is_array(js) {
         return Vec::new()
@@ -935,4 +991,74 @@ fn values_to_via(values: Vec<Value>) -> path::Via {
     } else {
         return path::Via::Values(values)
     }
+}
+
+fn js_array_to_values_optional_vec(js: &JsValue) -> Option<Vec<Value>> {
+    if !js_sys::Array::is_array(js) {
+        if js.is_undefined() || js.is_null() {
+            return None
+        } else {
+            if let Some(v) = js_to_value(&js) {
+                return Some(vec![v])
+            } else {
+                return None
+            }
+        }
+    }
+    
+    let array = js_sys::Array::from(js);
+
+    let values: Vec<Value> = array.values().into_iter().filter_map(|v| v.ok()).filter_map(|v| js_to_value(&v)).collect();
+
+    if values.is_empty() {
+        return None
+    } else {
+        Some(values)
+    }
+}
+
+
+fn js_to_filter_quads(filter: &JsValue) -> Rc<RefCell<dyn shape::Shape>> {
+    let mut subject: Option<Vec<Value>> = None;
+    let mut predicate: Option<Vec<Value>> = None;
+    let mut object: Option<Vec<Value>> = None;
+    let mut label: Option<Vec<Value>> = None;
+
+    if filter.is_object() {
+       
+        if let Ok(keys) = js_sys::Reflect::own_keys(filter) {
+            for key in keys.values().into_iter() {
+                if let Ok(k) = key {
+                    if let Some(name) = k.as_string() {
+
+                        if name == "sub" {
+                            if let Ok(value) = js_sys::Reflect::get(filter, &k) {
+                                subject = js_array_to_values_optional_vec(&value);
+                            }
+                        } 
+
+                        if name == "pred" {
+                            if let Ok(value) = js_sys::Reflect::get(filter, &k) {
+                                predicate = js_array_to_values_optional_vec(&value);
+                            }
+                        } 
+
+                        if name == "obj" {
+                            if let Ok(value) = js_sys::Reflect::get(filter, &k) {
+                                object = js_array_to_values_optional_vec(&value);
+                            }
+                        } 
+
+                        if name == "label" {
+                            if let Ok(value) = js_sys::Reflect::get(filter, &k) {
+                                label = js_array_to_values_optional_vec(&value);
+                            }
+                        } 
+                    }
+                }
+            }
+        }
+    }
+
+    shape::filter_quads(subject, predicate, object, label)
 }
