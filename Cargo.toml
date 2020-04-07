@@ -7,6 +7,7 @@ categories = ["wasm"]
 readme = "README.md"
 edition = "2018"
 
+
 [lib]
 crate-type = ["cdylib"]
 
@@ -16,14 +17,20 @@ crate-type = ["cdylib"]
 lto = true
 
 [features]
+default = ["regex"]
+regex = []
+
 # If you uncomment this line, it will enable `wee_alloc`:
 #default = ["wee_alloc"]
 
 [dependencies]
 js-sys = "0.3.22"
 
-[dependencies.gizmo-db]
-path = "../gizmo-db"
+[target.'cfg(feature = "regex")'.dependencies]
+gizmo-db = { path = "../gizmo-db", default-features=false, features = ["regex"] }
+
+[target.'cfg(not(feature = "regex"))'.dependencies]
+gizmo-db = { path = "../gizmo-db", default-features=false, features = [] }
 
 [dependencies.web-sys]
 version = "0.3.22"

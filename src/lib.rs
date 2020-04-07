@@ -5,7 +5,6 @@ use web_sys::console;
 use js_sys;
 
 use gizmo_db::query::path;
-use gizmo_db::query::gizmo;
 
 use gizmo_db::graph::quad::{QuadStore, QuadWriter, IgnoreOptions, Quad};
 use gizmo_db::graph::memstore;
@@ -730,48 +729,61 @@ fn js_object_to_value_filters(obj: &JsValue) -> Vec<Rc<dyn shape::ValueFilter>> 
 
                     if name == "lt" {
                         if let Ok(value) = js_sys::Reflect::get(obj, &k) {
-                            res.push(gizmo::lt(js_to_value_ignore(&value)))
+                            let v = js_to_value_ignore(&value);
+                            let vf = Rc::new(shape::Comparison::new(iterator::value_filter::Operator::LT, v));
+                            res.push(vf)
                         }
                     } 
                     
                     if name == "lte" {
                         if let Ok(value) = js_sys::Reflect::get(obj, &k) {
-                            res.push(gizmo::lte(js_to_value_ignore(&value)))
+                            let v = js_to_value_ignore(&value);
+                            let vf = Rc::new(shape::Comparison::new(iterator::value_filter::Operator::LTE, v.into()));
+                            res.push(vf)
                         }
                     } 
                     
                     if name == "gt" {
                         if let Ok(value) = js_sys::Reflect::get(obj, &k) {
-                            res.push(gizmo::gt(js_to_value_ignore(&value)))
+                            let v = js_to_value_ignore(&value);
+                            let vf = Rc::new(shape::Comparison::new(iterator::value_filter::Operator::GT, v.into()));
+                            res.push(vf)
                         }
                     } 
                     
                     if name == "gte" {
                         if let Ok(value) = js_sys::Reflect::get(obj, &k) {
-                            res.push(gizmo::gte(js_to_value_ignore(&value)))
+                            let v = js_to_value_ignore(&value);
+                            let vf = Rc::new(shape::Comparison::new(iterator::value_filter::Operator::GTE, v.into()));
+                            res.push(vf)
                         }
                     } 
                     
                     if name == "like" {
                         if let Ok(pattern) = js_sys::Reflect::get(obj, &k) {
                             if let Some(p) = pattern.as_string() {
-                                res.push(gizmo::like(p))
+                                let vf = Rc::new(shape::Wildcard::new(p.into()));
+                                res.push(vf)
                             }
                         }
                     }
 
-                    if name == "regex" {
-                        if let Ok(pattern) = js_sys::Reflect::get(obj, &k) {
-                            if let Some(p) = pattern.as_string() {
-                                let iri = if let Ok(iri) = js_sys::Reflect::get(obj, &"iri".into()) {
-                                    iri.is_truthy()
-                                } else {
-                                    false
-                                };
-                                res.push(gizmo::regex(p, iri))
+                    #[cfg(feature = "regex")]
+                    {
+                        if name == "regex" {
+                            if let Ok(pattern) = js_sys::Reflect::get(obj, &k) {
+                                if let Some(p) = pattern.as_string() {
+                                    let iri = if let Ok(iri) = js_sys::Reflect::get(obj, &"iri".into()) {
+                                        iri.is_truthy()
+                                    } else {
+                                        false
+                                    };
+                                    let vf = Rc::new(shape::Regexp::new(p.into(), iri));
+                                    res.push(vf)
+                                }
                             }
-                        }
-                    } 
+                        } 
+                    }
                 }
             }
         }
@@ -1077,3 +1089,5 @@ fn js_to_filter_quads(filter: &JsValue) -> shape::Quads {
 
     shape::filter_quads(subject, predicate, object, label)
 }
+
+
