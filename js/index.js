@@ -103,7 +103,7 @@
 
     run_test(
         "use .in() with .filter(prefix)",
-        g.V("<bob>").in("<follows>").filter({like: "al%"}).all(),
+        g.V("<bob>").in("<follows>").filter({like: "al*"}).all(),
         ["<alice>"]
     )
 
@@ -111,7 +111,7 @@
 
     run_test(
         "use .in() with .filter(wildcard)",
-        g.V("<bob>").in("<follows>").filter({like: "a?i%e"}).all(),
+        g.V("<bob>").in("<follows>").filter({like: "a?i*e"}).all(),
         ["<alice>"]
     )
 

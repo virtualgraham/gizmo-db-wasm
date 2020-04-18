@@ -1,3 +1,5 @@
+mod indexeddb;
+
 
 use wasm_bindgen::prelude::*;
 
@@ -960,7 +962,7 @@ fn js_to_quad(js: &JsValue) -> Option<Quad> {
 }
 
 
-fn value_to_js(value: &Value) -> JsValue {
+pub fn value_to_js(value: &Value) -> JsValue {
     match value {
         Value::None => JsValue::undefined(),
         Value::Null => JsValue::null(),
@@ -978,7 +980,7 @@ fn value_to_js(value: &Value) -> JsValue {
 }
 
 
-fn quad_to_js(quad: &Quad) -> JsValue {
+pub fn quad_to_js(quad: &Quad) -> JsValue {
     let arr = js_sys::Array::new();
     
     js_sys::Array::push(&arr, &value_to_js(&quad.subject));
